@@ -1,0 +1,60 @@
+{
+  "id": "mps-staff-portal",
+  "name": "MPS Staff Portal",
+  "short_name": "MPS Staff",
+  "description": "School Staff Attendance, Biometrics & Payroll Portal — Manage daily attendance, leaves, payroll, and school announcements.",
+  "start_url": "/staff/attendance",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Check In",
+      "short_name": "Check In",
+      "description": "Mark today's attendance check-in",
+      "url": "/staff/attendance",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Leave",
+      "short_name": "Leave",
+      "description": "View and apply for leave",
+      "url": "/staff/leave",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Payslips",
+      "short_name": "Payslips",
+      "description": "View salary slips",
+      "url": "/staff/payroll",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
