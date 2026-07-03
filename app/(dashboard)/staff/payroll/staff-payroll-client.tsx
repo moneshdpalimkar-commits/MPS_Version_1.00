@@ -171,8 +171,8 @@ export function StaffPayrollClient({ initialPayslips }: StaffPayrollClientProps)
                 {/* School Header */}
                 <div className="flex items-center justify-between gap-4 pb-4 border-b-2 border-primary">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-                      <GraduationCap className="w-5.5 h-5.5" />
+                    <div className="w-[220px] h-[220px] flex items-center justify-center bg-transparent">
+                      <img src="/logo.png" alt="MPS Logo" className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">

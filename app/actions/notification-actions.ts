@@ -301,7 +301,12 @@ export async function deleteNotificationAction(notificationId: string) {
   }
 }
 
-export async function broadcastSystemNotificationAction(title: string, message: string) {
+export async function broadcastSystemNotificationAction(
+  title: string,
+  message: string,
+  target: "all" | "principals" | "staff" | "school_principal" = "all",
+  schoolId?: string
+) {
   try {
     const supabase = await createServerClient();
     const {
@@ -316,29 +321,71 @@ export async function broadcastSystemNotificationAction(title: string, message: 
       return { success: false, error: "Unauthorized. Superadmin privilege required." };
     }
 
-    // 1. Fetch all principal IDs
-    const { data: principals, error: principalsError } = await supabaseAdmin
-      .from("principals")
-      .select("id");
+    let principalIds: string[] = [];
+    let staffIds: string[] = [];
+    let schoolName = "";
 
-    if (principalsError) {
-      return { success: false, error: `Failed to fetch principals: ${principalsError.message}` };
+    // 1. Fetch principal ID(s)
+    if (target === "all" || target === "principals") {
+      const { data: principals, error: principalsError } = await supabaseAdmin
+        .from("principals")
+        .select("id");
+
+      if (principalsError) {
+        return { success: false, error: `Failed to fetch principals: ${principalsError.message}` };
+      }
+      principalIds = principals.map((p) => p.id);
+    } else if (target === "school_principal") {
+      if (!schoolId) {
+        return { success: false, error: "School selection is required for targeting a specific principal." };
+      }
+
+      // Fetch school details
+      const { data: school, error: schoolError } = await supabaseAdmin
+        .from("schools")
+        .select("name")
+        .eq("id", schoolId)
+        .single();
+
+      if (schoolError) {
+        return { success: false, error: `Failed to fetch school info: ${schoolError.message}` };
+      }
+      schoolName = school?.name || "";
+
+      // Fetch school principal
+      const { data: principal, error: principalError } = await supabaseAdmin
+        .from("principals")
+        .select("id")
+        .eq("school_id", schoolId)
+        .limit(1)
+        .maybeSingle();
+
+      if (principalError) {
+        return { success: false, error: `Failed to fetch school principal: ${principalError.message}` };
+      }
+      if (!principal) {
+        return { success: false, error: `No principal assigned to ${schoolName || "the selected school"}.` };
+      }
+      principalIds = [principal.id];
     }
 
-    // 2. Fetch all staff IDs
-    const { data: staff, error: staffError } = await supabaseAdmin
-      .from("staff")
-      .select("id");
+    // 2. Fetch all staff IDs (if targeting all or staff)
+    if (target === "all" || target === "staff") {
+      const { data: staff, error: staffError } = await supabaseAdmin
+        .from("staff")
+        .select("id");
 
-    if (staffError) {
-      return { success: false, error: `Failed to fetch staff: ${staffError.message}` };
+      if (staffError) {
+        return { success: false, error: `Failed to fetch staff: ${staffError.message}` };
+      }
+      staffIds = staff.map((s) => s.id);
     }
 
     // Gather all target user IDs (including the broadcasting Superadmin)
     const userIds = Array.from(new Set([
       user.id,
-      ...principals.map((p) => p.id),
-      ...staff.map((s) => s.id),
+      ...principalIds,
+      ...staffIds,
     ]));
 
     if (userIds.length === 0) {
@@ -368,6 +415,9 @@ export async function broadcastSystemNotificationAction(title: string, message: 
       new_data: {
         title,
         message,
+        target,
+        school_id: schoolId || null,
+        school_name: schoolName || null,
         recipient_count: userIds.length,
       },
       category: "announcement",

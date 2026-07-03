@@ -181,8 +181,8 @@ export async function POST(request: NextRequest) {
 
       const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attendance-snapshots/${filePath}`;
 
-      // Write attendance record
-      const { error: dbError } = await supabaseAdmin.from("attendance").insert({
+      // Write attendance record (using upsert to allow overwriting any auto-generated 'absent' status)
+      const { error: dbError } = await supabaseAdmin.from("attendance").upsert({
         staff_id: user.id,
         date: dateStr,
         check_in_time: captureTime.toISOString(),
@@ -190,6 +190,9 @@ export async function POST(request: NextRequest) {
         check_in_face_verified: true,
         check_in_face_url: publicUrl,
         status: attendanceStatus,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: "staff_id,date"
       });
 
       if (dbError) {

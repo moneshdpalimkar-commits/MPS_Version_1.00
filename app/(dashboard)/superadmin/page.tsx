@@ -9,17 +9,23 @@ export const dynamic = "force-dynamic";
 export default async function SuperadminDashboard() {
   const supabase = await createClient();
 
+  const today = new Date().toISOString().split("T")[0];
+
   // Fetch metrics in parallel
   const [
     { count: schoolCount },
     { count: staffCount },
     { data: auditLogs },
     { data: leaves },
+    { data: todayAttendance },
+    { data: activeStaffSalaries },
   ] = await Promise.all([
     supabase.from("schools").select("*", { count: "exact", head: true }),
     supabase.from("staff").select("*", { count: "exact", head: true }),
     supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(5),
     supabase.from("leave_requests").select("status"),
+    supabase.from("attendance").select("status").eq("date", today),
+    supabase.from("staff").select("fixed_monthly_salary, base_salary").eq("status", "active"),
   ]);
 
   const totalSchools = schoolCount || 0;
@@ -28,9 +34,17 @@ export default async function SuperadminDashboard() {
   // Calculate Leave Overview stats (pending leaves)
   const pendingLeaves = leaves ? leaves.filter(l => l.status === 'pending').length : 0;
 
-  // Mock states for metrics that require high-density telemetry data
-  const attendanceRate = totalStaff > 0 ? "95.4%" : "0.0%";
-  const payrollBudget = totalSchools > 0 ? `$${(totalSchools * 42000).toLocaleString()}` : "$0"; 
+  // Calculate system-wide attendance rate for today
+  const attendedCount = todayAttendance
+    ? todayAttendance.filter(r => ["present", "on_time", "late", "super_late", "half_day"].includes(r.status)).length
+    : 0;
+  const attendanceRate = totalStaff > 0 ? `${((attendedCount / totalStaff) * 100).toFixed(1)}%` : "0.0%";
+
+  // Calculate gross monthly payroll estimate from active staff salaries
+  const totalGrossEstimate = activeStaffSalaries
+    ? activeStaffSalaries.reduce((sum, s) => sum + Number(s.fixed_monthly_salary || s.base_salary || 0), 0)
+    : 0;
+  const payrollBudget = `$${totalGrossEstimate.toLocaleString()}`; 
 
   const stats = [
     { label: "Total Schools", value: totalSchools.toString(), change: "Active tenants", icon: School },

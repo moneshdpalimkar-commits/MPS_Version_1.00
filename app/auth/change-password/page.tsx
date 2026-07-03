@@ -75,8 +75,8 @@ export default function ChangePasswordPage() {
         
         {/* Branding Header */}
         <div className="flex flex-col items-center text-center">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground mb-4 shadow-sm">
-            <GraduationCap className="w-6 h-6" />
+          <div className="flex items-center justify-center w-[220px] h-[220px] bg-transparent mb-3">
+            <img src="/logo.png" alt="MPS Logo" className="w-full h-full object-contain drop-shadow-lg" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
             Update Your Password

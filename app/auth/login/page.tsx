@@ -61,8 +61,8 @@ function LoginForm() {
     <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-lg p-6 md:p-8 space-y-6">
       {/* Branding header */}
       <div className="flex flex-col items-center text-center">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground mb-4 shadow-sm">
-          <GraduationCap className="w-6 h-6" />
+        <div className="flex items-center justify-center w-[220px] h-[220px] bg-transparent mb-3">
+          <img src="/logo.png" alt="MPS Logo" className="w-full h-full object-contain drop-shadow-lg" />
         </div>
         <h1 className="text-xl font-bold tracking-tight text-foreground">
           MPS Staff Portal

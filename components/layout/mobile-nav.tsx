@@ -98,17 +98,17 @@ export function MobileNav({ role, isOpen, onClose, schoolName }: MobileNavProps)
             className="fixed inset-y-0 left-0 w-[280px] bg-sidebar text-sidebar-foreground border-r border-border shadow-lg z-50 md:hidden flex flex-col select-none"
           >
             {/* Header */}
-            <div className="h-16 flex items-center justify-between px-5 border-b border-sidebar-border">
-              <div className="flex items-center gap-3 w-[70%]">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground flex-shrink-0">
-                  <GraduationCap className="w-5 h-5" />
+            <div className="h-auto flex flex-col justify-center px-4 py-6 border-b border-sidebar-border relative">
+              <div className="flex flex-col items-center gap-2 w-full mt-2">
+                <div className="flex items-center justify-center w-[220px] h-[220px] flex-shrink-0 bg-transparent">
+                  <img src="/logo.png" alt="MPS Logo" className="w-full h-full object-contain drop-shadow-md" />
                 </div>
-                <div className="flex flex-col truncate w-full font-sans">
+                <div className="flex flex-col items-center text-center truncate w-full font-sans">
                   <span className="font-bold text-base tracking-tight text-foreground">
                     MPS Portal
                   </span>
                   {schoolName && (
-                    <span className="text-[10px] text-muted-foreground font-semibold truncate" title={schoolName}>
+                    <span className="text-[10px] text-muted-foreground font-semibold truncate max-w-[200px]" title={schoolName}>
                       {schoolName}
                     </span>
                   )}
@@ -116,7 +116,7 @@ export function MobileNav({ role, isOpen, onClose, schoolName }: MobileNavProps)
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground cursor-pointer focus:outline-hidden"
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground cursor-pointer focus:outline-hidden"
                 aria-label="Close navigation menu"
               >
                 <X className="w-5 h-5" />

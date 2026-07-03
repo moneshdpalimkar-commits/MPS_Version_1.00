@@ -9,12 +9,16 @@ import {
   getSystemBroadcastsAction,
   getUserNotificationsAction,
 } from "@/app/actions/notification-actions";
+import { getSchoolsAction } from "@/app/actions/school-actions";
 import { NotificationsClient } from "@/components/shared/notifications-client";
 
 export default function SuperadminNotifications() {
   const [activeTab, setActiveTab] = useState<"broadcast" | "inbox">("broadcast");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [targetAudience, setTargetAudience] = useState<"all" | "principals" | "staff" | "school_principal">("all");
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -42,8 +46,16 @@ export default function SuperadminNotifications() {
     setLoadingInbox(false);
   };
 
+  const fetchSchools = async () => {
+    const res = await getSchoolsAction();
+    if (res.success && res.schools) {
+      setSchools(res.schools);
+    }
+  };
+
   useEffect(() => {
     fetchBroadcasts();
+    fetchSchools();
   }, []);
 
   useEffect(() => {
@@ -58,13 +70,15 @@ export default function SuperadminNotifications() {
     setIsSuccess(false);
     setErrorMsg(null);
 
-    const res = await broadcastSystemNotificationAction(title, message);
+    const res = await broadcastSystemNotificationAction(title, message, targetAudience, selectedSchoolId);
     setIsLoading(false);
 
     if (res.success) {
       setIsSuccess(true);
       setTitle("");
       setMessage("");
+      setTargetAudience("all");
+      setSelectedSchoolId("");
       fetchBroadcasts();
       setTimeout(() => setIsSuccess(false), 3000);
     } else {
@@ -154,6 +168,43 @@ export default function SuperadminNotifications() {
 
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                    Target Audience
+                  </label>
+                  <select
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value as "all" | "principals" | "staff" | "school_principal")}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+                  >
+                    <option value="all">All (Principals & Staff)</option>
+                    <option value="principals">Principals Only</option>
+                    <option value="school_principal">Particular School's Principal</option>
+                    <option value="staff">Staff Only</option>
+                  </select>
+                </div>
+
+                {targetAudience === "school_principal" && (
+                  <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                      Select School
+                    </label>
+                    <select
+                      required
+                      value={selectedSchoolId}
+                      onChange={(e) => setSelectedSchoolId(e.target.value)}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+                    >
+                      <option value="">-- Choose a School --</option>
+                      {schools.map((school) => (
+                        <option key={school.id} value={school.id}>
+                          {school.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                     Alert Message
                   </label>
                   <textarea
@@ -214,8 +265,19 @@ export default function SuperadminNotifications() {
                       <p className="text-xs text-muted-foreground mt-1.5 leading-normal whitespace-pre-wrap">
                         {n.new_data?.message}
                       </p>
-                      <div className="mt-2 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        Sent to {n.new_data?.recipient_count || 0} users
+                      <div className="mt-2 flex items-center justify-between text-[9px] font-semibold">
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          Sent to {n.new_data?.recipient_count || 0} users
+                        </span>
+                        {n.new_data?.target === "school_principal" ? (
+                          <span className="text-muted-foreground uppercase tracking-wider">
+                            Audience: Principal ({n.new_data.school_name || "Selected School"})
+                          </span>
+                        ) : n.new_data?.target ? (
+                          <span className="text-muted-foreground uppercase tracking-wider">
+                            Audience: {n.new_data.target}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   ))

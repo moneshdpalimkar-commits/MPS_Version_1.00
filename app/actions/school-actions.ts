@@ -197,3 +197,21 @@ export async function togglePrincipalStatusAction(principalId: string, isActive:
     };
   }
 }
+
+export async function getSchoolsAction() {
+  try {
+    const supabase = await createServerClient();
+    const { data, error } = await supabase
+      .from("schools")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, schools: data || [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || "An unexpected error occurred." };
+  }
+}

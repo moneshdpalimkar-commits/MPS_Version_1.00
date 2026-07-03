@@ -90,18 +90,27 @@ export function Sidebar({ role, className, schoolName }: SidebarProps) {
       )}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-5 border-b border-sidebar-border overflow-hidden">
-        <div className="flex items-center gap-3 w-full">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground flex-shrink-0">
-            <GraduationCap className="w-5 h-5" />
+      <div className={cn(
+        "flex flex-col items-center justify-center border-b border-sidebar-border transition-all duration-200 overflow-hidden",
+        isCollapsed ? "h-24 px-2" : "h-auto px-4 py-6"
+      )}>
+        <div className={cn(
+          "flex items-center w-full justify-center",
+          isCollapsed ? "flex-row gap-0" : "flex-col gap-2"
+        )}>
+          <div className={cn(
+            "flex items-center justify-center flex-shrink-0 bg-transparent transition-all duration-200",
+            isCollapsed ? "w-12 h-12" : "w-[220px] h-[220px]"
+          )}>
+            <img src="/logo.png" alt="MPS Logo" className="w-full h-full object-contain drop-shadow-md" />
           </div>
           {!isCollapsed && (
-            <div className="flex flex-col truncate w-full">
-              <span className="font-bold text-base tracking-tight text-foreground truncate max-w-[150px]">
+            <div className="flex flex-col items-center text-center truncate w-full mt-1">
+              <span className="font-bold text-base tracking-tight text-foreground truncate max-w-[200px]">
                 MPS Portal
               </span>
               {schoolName && (
-                <span className="text-[10px] text-muted-foreground font-semibold truncate max-w-[170px]" title={schoolName}>
+                <span className="text-[10px] text-muted-foreground font-semibold truncate max-w-[200px]" title={schoolName}>
                   {schoolName}
                 </span>
               )}
