@@ -2,6 +2,7 @@ import React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { RoleGuard } from "@/components/shared/role-guard";
 import { PrincipalDashboardClient } from "./principal-dashboard-client";
+import { syncOnDemandAbsentees } from "@/app/actions/attendance-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,9 @@ export default async function PrincipalPage() {
   let departmentPerformance: Array<{ name: string; Present: number }> = [];
 
   if (schoolId) {
+    // Trigger on-demand sync of absentees for all active staff in this school
+    await syncOnDemandAbsentees({ schoolId });
+
     // 1. Query attendance records for staff members in this school for today
     const { data: todayAttendance } = await supabase
       .from("attendance")

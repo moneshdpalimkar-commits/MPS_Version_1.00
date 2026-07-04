@@ -2,7 +2,7 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RoleGuard } from "@/components/shared/role-guard";
-import { getSchoolAttendanceLogsAction } from "@/app/actions/attendance-actions";
+import { getSchoolAttendanceLogsAction, syncOnDemandAbsentees } from "@/app/actions/attendance-actions";
 import { getSchoolCorrectionRequestsAction } from "@/app/actions/correction-actions";
 import { PrincipalAttendanceClient } from "./principal-attendance-client";
 
@@ -36,6 +36,9 @@ export default async function PrincipalAttendancePage() {
     .select("id, name")
     .eq("school_id", principal.school_id)
     .order("name", { ascending: true });
+
+  // Trigger on-demand sync of absentees for all active staff in this school
+  await syncOnDemandAbsentees({ schoolId: principal.school_id });
 
   // Default query to today's date YYYY-MM-DD
   const dateStr = new Date().toISOString().split("T")[0];

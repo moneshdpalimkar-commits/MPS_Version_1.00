@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RoleGuard } from "@/components/shared/role-guard";
 import { getAnalyticsDashboardDataAction } from "@/app/actions/report-actions";
+import { syncOnDemandAbsentees } from "@/app/actions/attendance-actions";
 import { PrincipalReportsClient } from "./principal-reports-client";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,9 @@ export default async function PrincipalReportsPage() {
   if (!principal) {
     redirect("/auth/login");
   }
+
+  // Trigger on-demand sync of absentees for all active staff in this school
+  await syncOnDemandAbsentees({ schoolId: principal.school_id });
 
   // Fetch initial analytics data (30 days trend + leaderboard)
   const analyticsResult = await getAnalyticsDashboardDataAction();

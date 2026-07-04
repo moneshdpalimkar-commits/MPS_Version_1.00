@@ -582,3 +582,163 @@ export async function getSchoolAttendanceLogsAction(dateStr: string, departmentI
     return { success: false, error: err?.message || "An unexpected error occurred." };
   }
 }
+
+export async function syncOnDemandAbsentees({
+  schoolId,
+  staffId,
+}: {
+  schoolId?: string | null;
+  staffId?: string | null;
+}) {
+  try {
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+
+    // 1. Fetch active staff
+    let query = supabaseAdmin
+      .from("staff")
+      .select("id, school_id, department_id, status, departments(*)")
+      .eq("status", "active");
+
+    if (schoolId) {
+      query = query.eq("school_id", schoolId);
+    }
+    if (staffId) {
+      query = query.eq("id", staffId);
+    }
+
+    const { data: staffList, error: staffError } = await query;
+    if (staffError || !staffList || staffList.length === 0) return { success: true };
+
+    // 2. Fetch existing attendance entries for today
+    let attendanceQuery = supabaseAdmin
+      .from("attendance")
+      .select("staff_id, status")
+      .eq("date", dateStr);
+
+    if (schoolId) {
+      attendanceQuery = attendanceQuery.in("staff_id", staffList.map((s) => s.id));
+    }
+    if (staffId) {
+      attendanceQuery = attendanceQuery.eq("staff_id", staffId);
+    }
+
+    const { data: attendanceLogs } = await attendanceQuery;
+    const markedStaffIds = new Set(attendanceLogs?.map((a) => a.staff_id) || []);
+
+    // 3. Fetch approved leave requests for today
+    let leaveQuery = supabaseAdmin
+      .from("leave_requests")
+      .select("staff_id")
+      .eq("status", "approved")
+      .lte("start_date", dateStr)
+      .gte("end_date", dateStr);
+
+    if (schoolId) {
+      leaveQuery = leaveQuery.in("staff_id", staffList.map((s) => s.id));
+    }
+    if (staffId) {
+      leaveQuery = leaveQuery.eq("staff_id", staffId);
+    }
+
+    const { data: leaveRequests } = await leaveQuery;
+    const staffOnLeaveIds = new Set(leaveRequests?.map((l) => l.staff_id) || []);
+
+    // 4. Fetch holidays covering today
+    const schoolIds = Array.from(new Set(staffList.map((s) => s.school_id)));
+    const { data: holidays } = await supabaseAdmin
+      .from("holidays")
+      .select("school_id")
+      .lte("start_date", dateStr)
+      .gte("end_date", dateStr)
+      .in("school_id", schoolIds);
+    const holidaySchoolIds = new Set(holidays?.map((h) => h.school_id) || []);
+
+    // 5. Determine which staff members have passed their check-in windows
+    const attendanceInserts: Array<{ staff_id: string; date: string; status: string }> = [];
+
+    for (const staff of staffList) {
+      if (markedStaffIds.has(staff.id)) {
+        continue;
+      }
+
+      let dept = staff.departments as unknown as {
+        start_time: string;
+        end_time: string;
+        attendance_window_mins: number | null;
+      } | null;
+
+      if (Array.isArray(staff.departments)) {
+        dept = (staff.departments as unknown[])[0] as {
+          start_time: string;
+          end_time: string;
+          attendance_window_mins: number | null;
+        } | null;
+      }
+
+      if (!dept || !dept.start_time) {
+        continue;
+      }
+
+      const shiftStart = parseInTimezone(dept.start_time, now);
+      const shiftEnd = parseInTimezone(dept.end_time, now);
+      if (shiftEnd < shiftStart) {
+        shiftEnd.setTime(shiftEnd.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      const shiftDurationMs = shiftEnd.getTime() - shiftStart.getTime();
+      const windowOffsetMins = dept.attendance_window_mins ?? 120;
+      let checkInEnd = new Date(shiftStart.getTime() + windowOffsetMins * 60 * 1000);
+
+      const midShift = new Date(shiftStart.getTime() + shiftDurationMs / 2);
+      if (checkInEnd > midShift) {
+        checkInEnd = midShift;
+      }
+
+      if (now > checkInEnd) {
+        if (holidaySchoolIds.has(staff.school_id)) {
+          attendanceInserts.push({
+            staff_id: staff.id,
+            date: dateStr,
+            status: "holiday",
+          });
+        } else if (staffOnLeaveIds.has(staff.id)) {
+          attendanceInserts.push({
+            staff_id: staff.id,
+            date: dateStr,
+            status: "on_leave",
+          });
+        } else {
+          attendanceInserts.push({
+            staff_id: staff.id,
+            date: dateStr,
+            status: "absent",
+          });
+        }
+      }
+    }
+
+    if (attendanceInserts.length > 0) {
+      await supabaseAdmin
+        .from("attendance")
+        .upsert(attendanceInserts, { onConflict: "staff_id,date" });
+
+      await supabaseAdmin.from("audit_logs").insert({
+        action: "on_demand_mark_absent",
+        table_name: "attendance",
+        new_data: {
+          date: dateStr,
+          records_inserted: attendanceInserts.length,
+          trigger: schoolId ? `school_${schoolId}` : `staff_${staffId}`,
+        },
+        category: "attendance",
+      });
+    }
+
+    return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    console.error("Error in syncOnDemandAbsentees:", err);
+    return { success: false, error: err?.message || "An unexpected error occurred." };
+  }
+}

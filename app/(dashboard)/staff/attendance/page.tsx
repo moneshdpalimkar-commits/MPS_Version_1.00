@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RoleGuard } from "@/components/shared/role-guard";
 import { AttendanceClient } from "./attendance-client";
+import { syncOnDemandAbsentees } from "@/app/actions/attendance-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ export default async function StaffAttendancePage() {
   if (!staff) {
     redirect("/auth/login");
   }
+
+  // Trigger on-demand sync of absentees for this staff member
+  await syncOnDemandAbsentees({ staffId: user.id });
 
   // Biometrics Redirection Check:
   // If the user's face is not registered, force them to the Setup Wizard!
