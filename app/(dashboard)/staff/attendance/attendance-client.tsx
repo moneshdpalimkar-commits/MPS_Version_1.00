@@ -422,7 +422,7 @@ export function AttendanceClient({
       const detection = await faceapi
         .detectSingleFace(
           video,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 })
         )
         .withFaceLandmarks()
         .withFaceDescriptor();
@@ -450,16 +450,16 @@ export function AttendanceClient({
       }
       const dist = Math.sqrt(sumDist);
 
-      // Biometric similarity threshold (0.6 is standard for face-api.js SSD/Tiny)
-      if (dist > 0.6) {
-        setErrorMsg(`Biometric verification failed: Match mismatch (Distance: ${dist.toFixed(2)} > 0.60). Please look directly at the camera.`);
+      // Biometric similarity threshold (0.65 is relaxed for face-api.js SSD/Tiny)
+      if (dist > 0.65) {
+        setErrorMsg(`Biometric verification failed: Match mismatch (Distance: ${dist.toFixed(2)} > 0.65). Please look directly at the camera.`);
         setVerificationStep("idle");
         startCamera();
         return;
       }
 
       // Convert distance to a user-friendly match percentage
-      const score = Math.round(100 - (dist / 0.6) * 30);
+      const score = Math.round(100 - (dist / 0.65) * 30);
       setMatchScore(score);
 
       // 3. Capture image from video

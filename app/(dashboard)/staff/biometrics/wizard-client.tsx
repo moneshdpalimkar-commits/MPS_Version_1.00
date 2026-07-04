@@ -170,7 +170,7 @@ export function WizardClient({ firstName, initialAttempts }: WizardClientProps) 
       const detection = await faceapi
         .detectSingleFace(
           video,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 })
         )
         .withFaceLandmarks()
         .withFaceDescriptor();
