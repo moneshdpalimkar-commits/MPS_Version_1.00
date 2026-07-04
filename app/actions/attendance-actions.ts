@@ -330,6 +330,10 @@ export async function checkOutAction(formData: CheckInInput) {
       return { success: false, error: "No check-in record found for today." };
     }
 
+    if (!log.check_in_time) {
+      return { success: false, error: "You cannot check out because you did not check in today." };
+    }
+
     if (log.check_out_time) {
       return { success: false, error: "You have already checked out for today." };
     }
