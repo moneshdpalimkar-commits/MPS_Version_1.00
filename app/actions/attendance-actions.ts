@@ -33,6 +33,55 @@ function calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2:
   return R * c; // Distance in meters
 }
 
+function parseInTimezone(timeStr: string, dateObj: Date, timezone: string = "Asia/Kolkata"): Date {
+  const [hours, minutes, seconds] = timeStr.split(":").map(Number);
+  
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  
+  const parts = formatter.formatToParts(dateObj);
+  const map = new Map(parts.map(p => [p.type, p.value]));
+  const year = Number(map.get("year"));
+  const month = Number(map.get("month"));
+  const day = Number(map.get("day"));
+
+  const candidate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds || 0));
+  
+  const getParts = (d: Date, tz: string) => {
+    const f = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    const pts = f.formatToParts(d);
+    const m = new Map(pts.map(p => [p.type, p.value]));
+    const hr = Number(m.get("hour"));
+    return Date.UTC(
+      Number(m.get("year")),
+      Number(m.get("month")) - 1,
+      Number(m.get("day")),
+      hr === 24 ? 0 : hr,
+      Number(m.get("minute")),
+      Number(m.get("second"))
+    );
+  };
+
+  const utcMs = getParts(candidate, "UTC");
+  const tzMs = getParts(candidate, timezone);
+  const offsetMs = tzMs - utcMs;
+  
+  return new Date(candidate.getTime() - offsetMs);
+}
+
 interface CheckInInput {
   base64Image: string;
   latitude?: number;
@@ -143,16 +192,11 @@ export async function checkInAction(formData: CheckInInput) {
       return { success: false, error: "You have already checked in for today." };
     }
 
-    // Parse shift timings relative to today's date
-    const [startH, startM, startS] = dept.start_time.split(":").map(Number);
-    const shiftStart = new Date(now);
-    shiftStart.setHours(startH, startM, startS || 0, 0);
-
-    const [endH, endM, endS] = dept.end_time.split(":").map(Number);
-    const shiftEnd = new Date(now);
-    shiftEnd.setHours(endH, endM, endS || 0, 0);
+    // Parse shift timings relative to today's date in target timezone
+    const shiftStart = parseInTimezone(dept.start_time, now);
+    const shiftEnd = parseInTimezone(dept.end_time, now);
     if (shiftEnd < shiftStart) {
-      shiftEnd.setDate(shiftEnd.getDate() + 1); // Overnight shifts
+      shiftEnd.setTime(shiftEnd.getTime() + 24 * 60 * 60 * 1000); // Overnight shifts
     }
 
     const shiftDurationMs = shiftEnd.getTime() - shiftStart.getTime();
@@ -168,7 +212,8 @@ export async function checkInAction(formData: CheckInInput) {
     }
 
     if (now < checkInStart || now > checkInEnd) {
-      const formatTime = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const formatTime = (d: Date) => 
+        d.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
       return {
         success: false,
         error: `Check-in rejected: Outside the allowed check-in window (${formatTime(checkInStart)} - ${formatTime(checkInEnd)}).`
@@ -243,6 +288,7 @@ export async function checkInAction(formData: CheckInInput) {
     revalidatePath("/staff/attendance");
     revalidatePath("/staff");
     return { success: true, status, checkInTime: now.toLocaleTimeString() };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     return { success: false, error: err?.message || "An unexpected error occurred." };
   }
@@ -299,16 +345,11 @@ export async function checkOutAction(formData: CheckInInput) {
       return { success: false, error: "Assigned department configuration not found." };
     }
 
-    // Parse shift timings relative to today's date
-    const [startH_co, startM_co, startS_co] = dept.start_time.split(":").map(Number);
-    const shiftStart_co = new Date(now);
-    shiftStart_co.setHours(startH_co, startM_co, startS_co || 0, 0);
-
-    const [endH_co, endM_co, endS_co] = dept.end_time.split(":").map(Number);
-    const shiftEnd_co = new Date(now);
-    shiftEnd_co.setHours(endH_co, endM_co, endS_co || 0, 0);
+    // Parse shift timings relative to today's date in target timezone
+    const shiftStart_co = parseInTimezone(dept.start_time, now);
+    const shiftEnd_co = parseInTimezone(dept.end_time, now);
     if (shiftEnd_co < shiftStart_co) {
-      shiftEnd_co.setDate(shiftEnd_co.getDate() + 1); // Overnight shifts
+      shiftEnd_co.setTime(shiftEnd_co.getTime() + 24 * 60 * 60 * 1000); // Overnight shifts
     }
 
     const shiftDurationMs_co = shiftEnd_co.getTime() - shiftStart_co.getTime();
@@ -325,7 +366,8 @@ export async function checkOutAction(formData: CheckInInput) {
     }
 
     if (now < checkOutStart_co || now > checkOutEnd_co) {
-      const formatTime = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const formatTime = (d: Date) => 
+        d.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
       return {
         success: false,
         error: `Check-out rejected: Outside the allowed check-out window (${formatTime(checkOutStart_co)} - ${formatTime(checkOutEnd_co)}).`
@@ -438,6 +480,7 @@ export async function checkOutAction(formData: CheckInInput) {
     revalidatePath("/staff/attendance");
     revalidatePath("/staff");
     return { success: true, status: updatedStatus, checkOutTime: now.toLocaleTimeString() };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     return { success: false, error: err?.message || "An unexpected error occurred." };
   }
@@ -472,6 +515,7 @@ export async function getStaffAttendanceLogsAction(month: number, year: number) 
     }
 
     return { success: true, logs: logs || [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     return { success: false, error: err?.message || "An unexpected error occurred." };
   }
@@ -533,6 +577,7 @@ export async function getSchoolAttendanceLogsAction(dateStr: string, departmentI
     const filteredLogs = (logs || []).filter((l) => l.staff !== null);
 
     return { success: true, logs: filteredLogs };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     return { success: false, error: err?.message || "An unexpected error occurred." };
   }
