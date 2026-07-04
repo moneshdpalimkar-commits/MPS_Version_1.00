@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Calendar,
+  CalendarOff,
+  Coffee,
   CheckCircle,
   Eye,
   ArrowRight,
@@ -176,9 +178,11 @@ export function AttendanceClient({
 
   const activeWindow = getAttendanceWindow();
 
+  const hasValidCheckIn = todayLog && ["present", "on_time", "late", "super_late", "half_day"].includes(todayLog.status);
+
   const canMarkAttendance =
     (activeWindow.state === "checkin" && !todayLog) ||
-    (activeWindow.state === "checkout" && todayLog && !todayLog.check_out_time);
+    (activeWindow.state === "checkout" && hasValidCheckIn && !todayLog.check_out_time);
 
   const calculateTotalHours = (checkIn: string | null, checkOut: string | null) => {
     if (!checkIn || !checkOut) return "—";
@@ -777,9 +781,15 @@ export function AttendanceClient({
                       <p className="text-xs text-zinc-500 max-w-xs leading-relaxed">
                         {activeWindow.state === "lockout"
                           ? "The biometric scanner is disabled because you are outside the scheduled attendance windows."
+                          : activeWindow.state === "checkin" && todayLog && ["on_leave", "leave"].includes(todayLog.status)
+                          ? "You are marked as on leave for today."
+                          : activeWindow.state === "checkin" && todayLog && todayLog.status === "holiday"
+                          ? "Today is scheduled as a school holiday."
+                          : activeWindow.state === "checkin" && todayLog && todayLog.status === "absent"
+                          ? "You have been marked absent for today."
                           : activeWindow.state === "checkin" && todayLog
                           ? "You have already completed your check-in for today."
-                          : activeWindow.state === "checkout" && !todayLog
+                          : activeWindow.state === "checkout" && !hasValidCheckIn
                           ? "You cannot check out because you did not log a check-in for today."
                           : "Shift logs completed for today."}
                       </p>
@@ -932,10 +942,27 @@ export function AttendanceClient({
                     </div>
                   ) : activeWindow.state === "checkin" ? (
                     todayLog ? (
-                      <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg text-xs font-semibold w-full flex items-center justify-center gap-2">
-                        <CheckCircle className="w-4.5 h-4.5" />
-                        <span>Already checked in. Evening check-out window opens at {activeWindow.checkOutStart}.</span>
-                      </div>
+                      ["on_leave", "leave"].includes(todayLog.status) ? (
+                        <div className="p-3.5 bg-sky-500/10 border border-sky-500/20 text-sky-600 rounded-lg text-xs font-semibold w-full flex items-center justify-center gap-2">
+                          <CalendarOff className="w-4.5 h-4.5" />
+                          <span>You are marked as on leave for today.</span>
+                        </div>
+                      ) : todayLog.status === "holiday" ? (
+                        <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg text-xs font-semibold w-full flex items-center justify-center gap-2">
+                          <Coffee className="w-4.5 h-4.5" />
+                          <span>Today is scheduled as a school holiday.</span>
+                        </div>
+                      ) : todayLog.status === "absent" ? (
+                        <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-600 rounded-lg text-xs font-semibold w-full flex items-center justify-center gap-2">
+                          <ShieldAlert className="w-4.5 h-4.5" />
+                          <span>You have been marked absent for today.</span>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg text-xs font-semibold w-full flex items-center justify-center gap-2">
+                          <CheckCircle className="w-4.5 h-4.5" />
+                          <span>Already checked in. Evening check-out window opens at {activeWindow.checkOutStart}.</span>
+                        </div>
+                      )
                     ) : (
                       <button
                         onClick={triggerVerificationFlow}
@@ -961,7 +988,7 @@ export function AttendanceClient({
                         <CheckCircle className="w-4.5 h-4.5" />
                         <span>Shift logs completed for today.</span>
                       </div>
-                    ) : todayLog ? (
+                    ) : hasValidCheckIn ? (
                       <button
                         onClick={triggerVerificationFlow}
                         disabled={loadingModels}
@@ -979,6 +1006,26 @@ export function AttendanceClient({
                           </>
                         )}
                       </button>
+                    ) : todayLog && ["on_leave", "leave"].includes(todayLog.status) ? (
+                      <div className="p-4 bg-sky-500/10 border border-sky-500/20 text-sky-600 rounded-xl text-xs font-medium w-full flex flex-col items-center justify-center gap-2 text-center">
+                        <CalendarOff className="w-6 h-6 text-sky-500" />
+                        <div>
+                          <span className="font-bold text-sm block mb-1">On Leave</span>
+                          <p className="text-[11px] text-sky-500/80">
+                            You are marked as on leave for today.
+                          </p>
+                        </div>
+                      </div>
+                    ) : todayLog && todayLog.status === "holiday" ? (
+                      <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-xs font-medium w-full flex flex-col items-center justify-center gap-2 text-center">
+                        <Coffee className="w-6 h-6 text-amber-500" />
+                        <div>
+                          <span className="font-bold text-sm block mb-1">School Holiday</span>
+                          <p className="text-[11px] text-amber-500/80">
+                            Today is a school holiday.
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-600 rounded-xl text-xs font-medium w-full flex flex-col items-center justify-center gap-2 text-center">
                         <ShieldAlert className="w-6 h-6 text-rose-500" />
