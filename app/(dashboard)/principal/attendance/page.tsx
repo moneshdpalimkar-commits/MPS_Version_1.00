@@ -41,7 +41,7 @@ export default async function PrincipalAttendancePage() {
   await syncOnDemandAbsentees({ schoolId: principal.school_id });
 
   // Default query to today's date YYYY-MM-DD
-  const dateStr = new Date().toISOString().split("T")[0];
+  const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const logsResult = await getSchoolAttendanceLogsAction(dateStr, "all");
   const logsList = logsResult.logs || [];
 

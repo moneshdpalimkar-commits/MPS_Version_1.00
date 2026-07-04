@@ -178,7 +178,7 @@ export async function checkInAction(formData: CheckInInput) {
 
     // 3. Timing and status check-in calculation
     const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
     // Check if check-in already recorded for today
     const { data: existingAttendance } = await supabaseAdmin
@@ -317,7 +317,7 @@ export async function checkOutAction(formData: CheckInInput) {
     }
 
     const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
     const { data: log, error: logError } = await supabaseAdmin
       .from("attendance")
@@ -596,7 +596,7 @@ export async function syncOnDemandAbsentees({
 }) {
   try {
     const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
     // 1. Fetch active staff
     let query = supabaseAdmin

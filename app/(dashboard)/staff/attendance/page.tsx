@@ -50,7 +50,7 @@ export default async function StaffAttendancePage() {
 
   // 2. Fetch today's check-in status
   const now = new Date();
-  const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
   const { data: todayLog } = await supabase
     .from("attendance")

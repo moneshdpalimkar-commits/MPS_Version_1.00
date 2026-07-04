@@ -29,7 +29,7 @@ export default async function PrincipalPage() {
     }
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
   let present = 0;
   let absent = 0;
