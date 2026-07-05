@@ -248,6 +248,7 @@ export function AttendanceClient({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
   // Form hook
   const correctionForm = useForm<CorrectionFormInput>({
@@ -342,6 +343,7 @@ export function AttendanceClient({
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         setCoords({ latitude: lat, longitude: lng });
+        coordsRef.current = { latitude: lat, longitude: lng };
 
         // Calculate distance if geofence is set
         if (department && department.gps_latitude && department.gps_longitude) {
@@ -513,8 +515,8 @@ export function AttendanceClient({
 
     startTransition(async () => {
       const result = await submitAttendance(type, snapData, {
-        latitude: coords?.latitude,
-        longitude: coords?.longitude,
+        latitude: coordsRef.current?.latitude,
+        longitude: coordsRef.current?.longitude,
       });
 
       if (result.success) {
